@@ -46,12 +46,21 @@ def load_embeddings(embeddings_path):
     ########################
     #### YOUR CODE HERE ####
     ########################
+    embeddings = {}
 
-    # remove this when you're done
-    raise NotImplementedError(
-        "Open utils.py and fill with your code. In case of Google Colab, download"
-        "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
-        "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
+    for line in open(embeddings_path):
+      word, *vec = line.strip().split('\t')
+      embeddings[word]=np.array(vec, dtype=np.float32)
+
+    embeddings_dim=len(vec)
+
+    return embeddings, embeddings_dim
+
+    # # remove this when you're done
+    # raise NotImplementedError(
+    #     "Open utils.py and fill with your code. In case of Google Colab, download"
+    #     "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
+    #     "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
 
 
 def question_to_vec(question, embeddings, dim):
@@ -62,12 +71,23 @@ def question_to_vec(question, embeddings, dim):
     ########################
     #### YOUR CODE HERE ####
     ########################
+    question_words = question.split(' ')
+    words_with_embeddings = [x for x in question_words if x in embeddings] # Get only words in embeddings
 
-    # remove this when you're done
-    raise NotImplementedError(
-        "Open utils.py and fill with your code. In case of Google Colab, download"
-        "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
-        "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
+    if len(words_with_embeddings)==0:
+        return np.zeros(dim)
+    else:
+        word_vectors = []
+
+        for word in words_with_embeddings:
+            word_vectors.append(embeddings[word])
+
+        return np.mean(np.array(word_vectors),0)
+    # # remove this when you're done
+    # raise NotImplementedError(
+    #     "Open utils.py and fill with your code. In case of Google Colab, download"
+    #     "(https://github.com/hse-aml/natural-language-processing/blob/master/project/utils.py), "
+    #     "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
 
 
 def unpickle_file(filename):
