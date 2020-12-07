@@ -50,6 +50,8 @@ def load_embeddings(embeddings_path):
 
     for line in open(embeddings_path):
       word, *vec = line.strip().split('\t')
+      if len(vec)==0:
+          continue
       embeddings[word]=np.array(vec, dtype=np.float32)
 
     embeddings_dim=len(vec)

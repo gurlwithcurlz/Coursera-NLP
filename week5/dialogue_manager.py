@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances_argmin
 
 from chatterbot import ChatBot
@@ -16,18 +17,23 @@ class ThreadRanker(object):
         thread_ids, thread_embeddings = unpickle_file(embeddings_path)
         return thread_ids, thread_embeddings
 
-    def get_best_thread(self, question, tag_name):
+    def rank_candidates(self, question_vec, candidates_vec):
+        ranks = pairwise_distances_argmin(question_vec.reshape(1,self.embeddings_dim), candidates_vec, metric='cosine')
+
+        return ranks
+
+    def get_best_thread(self, prepared_question, tag_name):
         """ Returns id of the most similar thread for the question.
             The search is performed across the threads with a given tag.
         """
         thread_ids, thread_embeddings = self.__load_embeddings_by_tag(tag_name)
 
         # HINT: you have already implemented a similar routine in the 3rd assignment.
-        
-        question_vec = #### YOUR CODE HERE ####
-        best_thread = #### YOUR CODE HERE ####
-        
-        return thread_ids[best_thread]
+
+        question_vec = question_to_vec(prepared_question, self.word_embeddings, self.embeddings_dim)#### YOUR CODE HERE ####
+        best_thread = self.rank_candidates(question_vec, thread_embeddings)#### YOUR CODE HERE ####
+
+        return thread_ids[best_thread[0]]
 
 
 class DialogueManager(object):
@@ -52,39 +58,45 @@ class DialogueManager(object):
         # Create an instance of the ChatBot class.
         # Create a trainer (chatterbot.trainers.ChatterBotCorpusTrainer) for the ChatBot.
         # Train the ChatBot with "chatterbot.corpus.english" param.
-        
+
+        self.chitchat_bot=ChatBot('Chatty')
+        self.chitchat_bot.set_trainer(ChatterBotCorpusTrainer)
+        self.chitchat_bot.train('chatterbot.corpus.english')
+
+
         ########################
         #### YOUR CODE HERE ####
         ########################
+        #
+        # # remove this when you're done
+        # raise NotImplementedError(
+        #     "Open dialogue_manager.py and fill with your code. In case of Google Colab, download"
+        #     "(https://github.com/hse-aml/natural-language-processing/blob/master/project/dialogue_manager.py), "
+        #     "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
 
-        # remove this when you're done
-        raise NotImplementedError(
-            "Open dialogue_manager.py and fill with your code. In case of Google Colab, download"
-            "(https://github.com/hse-aml/natural-language-processing/blob/master/project/dialogue_manager.py), "
-            "edit locally and upload using '> arrow on the left edge' -> Files -> UPLOAD")
-       
     def generate_answer(self, question):
         """Combines stackoverflow and chitchat parts using intent recognition."""
 
         # Recognize intent of the question using `intent_recognizer`.
         # Don't forget to prepare question and calculate features for the question.
-        
-        prepared_question = #### YOUR CODE HERE ####
-        features = #### YOUR CODE HERE ####
-        intent = #### YOUR CODE HERE ####
 
-        # Chit-chat part:   
+        prepared_question = text_prepare(question)#### YOUR CODE HERE ####
+        features = self.tfidf_vectorizer.transform([prepared_question])#### YOUR CODE HERE ####
+        intent = self.intent_recognizer.predict(features)#### YOUR CODE HERE ####
+
+        # Chit-chat part:
         if intent == 'dialogue':
-            # Pass question to chitchat_bot to generate a response.       
-            response = #### YOUR CODE HERE ####
+            # Pass question to chitchat_bot to generate a response.
+            response = self.chitchat_bot.get_response(question)#### YOUR CODE HERE ####
             return response
-        
+
         # Goal-oriented part:
-        else:        
+        else:
             # Pass features to tag_classifier to get predictions.
-            tag = #### YOUR CODE HERE ####
-            
+            tag = self.tag_classifier.predict(features)[0]#### YOUR CODE HERE ####
+
+
             # Pass prepared_question to thread_ranker to get predictions.
-            thread_id = #### YOUR CODE HERE ####
-            
+            thread_id = self.thread_ranker.get_best_thread(prepared_question,tag)#### YOUR CODE HERE ####
+
             return self.ANSWER_TEMPLATE % (tag, thread_id)
